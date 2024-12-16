@@ -1,5 +1,5 @@
 <library path="voronoi_planner">
-	<class name="voronoi_planner/VoronoiPlanner" type="voronoi_planner::VoronoiPlanner"
+	<class name="voronoi_planner::VoronoiPlanner" type="voronoi_planner::VoronoiPlanner"
 		base_class_type="nav2_core::BaseGlobalPlanner">
 		<description>
 			A implementation of a grid based planner using voronoi diagram

@@ -7,11 +7,10 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
-# find_package(dynamicvoronoi REQUIRED)
 find_package(pluginlib REQUIRED)
 find_package(nav2_costmap_2d REQUIRED)
 find_package(nav2_core REQUIRED)
-find_package(nav2_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(angles REQUIRED)
 find_package(geometry_msgs REQUIRED)
@@ -45,7 +44,14 @@ install(
 install(DIRECTORY include/ DESTINATION include/)
 
 install(FILES voronoi_planner.xml DESTINATION share/${PROJECT_NAME})
+# Add the plugin test executable
+add_executable(plugin_test src/test.cpp)
 
+# Link necessary libraries
+target_link_libraries(plugin_test rclcpp pluginlib)
+
+# Install the test executable
+install(TARGETS plugin_test DESTINATION lib/${PROJECT_NAME})
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   # the following line skips the linter which checks for copyrights comment the

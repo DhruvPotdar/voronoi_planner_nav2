@@ -74,17 +74,6 @@ public:
   createPlan(const geometry_msgs::msg::PoseStamped &start,
              const geometry_msgs::msg::PoseStamped &goal) override;
 
-  /*
-   * @brief Given a goal pose in the world, compute a plan
-   * @param start The start pose
-   * @param goal The goal pose
-   * @param tolerance The tolerance on the goal point for the planner
-   * @param plan The plan... filled by the planner
-   * @return True if a valid plan was found, false otherwise
-   */
-  nav_msgs::msg::Path createPlan(const geometry_msgs::msg::PoseStamped &start,
-                                 const geometry_msgs::msg::PoseStamped &goal,
-                                 double tolerance);
   /**
    * @brief Compute path using Voronoi diagram
    * @param path Output path
@@ -124,7 +113,9 @@ protected:
   // Store a copy of the current costmap. Called by createPlan
   nav2_costmap_2d::Costmap2D *costmap_;
   std::shared_ptr<tf2_ros::Buffer> tf_;
-
+  std::unique_ptr<voronoi_planner::VoronoiPlanner> planner_;
+  rclcpp::Clock::SharedPtr clock_;
+  rclcpp::Logger logger_{rclcpp::get_logger("VoronoiPlanner")};
   bool initialized_ = false;
   std::string frame_id_ = "map";
   std::string name_;
@@ -138,11 +129,9 @@ private:
   // Existing coordinate transformation methods
   void mapToWorld(double mx, double my, double &wx, double &wy);
   bool worldToMap(double wx, double wy, double &mx, double &my);
-  void clearRobotCell(const geometry_msgs::msg::Pose &goal_pose,
-                      unsigned int mx, unsigned int my);
-  // ! Dynamic reconfiguration
-  /*void reconfigureCB(const VoronoiPlannerConfig &config);*/
+  void clearRobotCell(unsigned int mx, unsigned int my);
 
+  rclcpp_lifecycle::LifecycleNode::WeakPtr parent_node_;
   double planner_window_x_, planner_window_y_, default_tolerance_;
   boost::mutex mutex_;
   std::shared_ptr<tf2_ros::Buffer> tf_buffer;
@@ -158,7 +147,17 @@ private:
   unsigned int start_x_, start_y_, end_x_, end_y_;
   void costmapUpdateCallback(
       const map_msgs::msg::OccupancyGridUpdate::SharedPtr msg) const;
-  // TODO: parameter based reconfiguration, makePlan service
+
+  // Dynamic parameters handler
+  rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr
+      dyn_params_handler_;
+
+  /**
+   * @brief Callback executed when a parameter change is detected
+   * @param parameters list of changed parameters
+   */
+  rcl_interfaces::msg::SetParametersResult
+  dynamicParametersCallback(std::vector<rclcpp::Parameter> parameters);
 };
 
 } // namespace voronoi_planner
