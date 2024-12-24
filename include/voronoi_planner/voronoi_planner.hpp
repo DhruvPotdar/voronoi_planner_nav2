@@ -4,7 +4,6 @@
 #include <boost/thread/pthread/mutex.hpp>
 #include <geometry_msgs/msg/point.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
-#include <map_msgs/msg/detail/occupancy_grid_update__struct.hpp>
 #include <nav2_core/global_planner.hpp>
 #include <nav2_costmap_2d/costmap_2d_ros.hpp>
 #include <nav2_util/lifecycle_node.hpp>
@@ -22,7 +21,7 @@
 #include <memory>
 #include <string>
 
-#include "../dynamic_voronoi.hpp"
+#include "dynamic_voronoi.hpp"
 /*#include "voronoi_planner/voronoi_planner_config.hpp"*/
 
 namespace voronoi_planner {

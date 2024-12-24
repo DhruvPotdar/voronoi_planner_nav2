@@ -82,9 +82,6 @@ void VoronoiPlanner::clearRobotCell(unsigned int mx, unsigned int my) {
   costmap_->setCost(mx, my, nav2_costmap_2d::FREE_SPACE);
 }
 
-// TODO: Make Plan Service here
-// VoronoiPlanner::makePlanService
-
 void VoronoiPlanner::mapToWorld(double mx, double my, double &wx, double &wy) {
   float convert_offset_ = 0;
   wx = costmap_->getOriginX() +
@@ -526,9 +523,9 @@ bool VoronoiPlanner::findPath(std::vector<std::pair<float, float>> *path,
   x = goal_x;
   y = goal_y;
 
-  int i = 0;
   path->clear();
 
+  int i = 0;
   while (x != init_x || y != init_y) {
     path->push_back({x, y});
     i++;
