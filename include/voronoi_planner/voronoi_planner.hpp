@@ -22,8 +22,7 @@
 #include <memory>
 #include <string>
 
-#include "../dynamic_voronoi.hpp"
-/*#include "voronoi_planner/voronoi_planner_config.hpp"*/
+#include "dynamic_voronoi.hpp"
 
 namespace voronoi_planner {
 
