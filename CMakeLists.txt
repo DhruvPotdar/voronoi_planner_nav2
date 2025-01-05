@@ -22,9 +22,9 @@ set(library_name ${PROJECT_NAME}_plugin)
 # $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 # $<INSTALL_INTERFACE:include>)
 
-set(library_name ${PROJECT_NAME}_plugin)
+set(library_name ${PROJECT_NAME})
 
-add_library(${library_name} SHARED src/voronoi_planner.cpp)
+add_library(${library_name} SHARED src/voronoi_planner.cpp src/dynamic_voronoi.cpp src/bucketedqueue.cpp)
 ament_target_dependencies(${library_name} ${dep_pkgs})
 include_directories(include)
 
@@ -45,13 +45,13 @@ install(DIRECTORY include/ DESTINATION include/)
 
 install(FILES voronoi_planner.xml DESTINATION share/${PROJECT_NAME})
 # Add the plugin test executable
-add_executable(plugin_test src/test.cpp)
+# add_executable(plugin_test src/test.cpp)
 
 # Link necessary libraries
-target_link_libraries(plugin_test rclcpp pluginlib)
+# target_link_libraries(plugin_test rclcpp pluginlib)
 
 # Install the test executable
-install(TARGETS plugin_test DESTINATION lib/${PROJECT_NAME})
+# install(TARGETS plugin_test DESTINATION lib/${PROJECT_NAME})
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   # the following line skips the linter which checks for copyrights comment the
