@@ -133,8 +133,6 @@ private:
   rclcpp_lifecycle::LifecycleNode::WeakPtr parent_node_;
   double planner_window_x_, planner_window_y_, default_tolerance_;
   boost::mutex mutex_;
-  std::shared_ptr<tf2_ros::Buffer> tf_buffer;
-  std::shared_ptr<tf2_ros::TransformListener> tf_listener;
   /*rclcpp::Service<???> make_plan_srv_;*/
 
   // Voronoi diagram

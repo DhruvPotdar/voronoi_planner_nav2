@@ -36,6 +36,8 @@ void VoronoiPlanner::configure(
     std::shared_ptr<tf2_ros::Buffer> tf,
     std::shared_ptr<nav2_costmap_2d::Costmap2DROS> costmap_ros) {
   if (!initialized_) {
+    RCLCPP_INFO(logger_, "====================================================="
+                         "=================================================");
     planner_ = std::make_unique<voronoi_planner::VoronoiPlanner>();
     parent_node_ = parent;
     node_ = parent.lock();
@@ -45,10 +47,6 @@ void VoronoiPlanner::configure(
     clock_ = node_->get_clock();
     planner_->costmap_ = costmap_ros->getCostmap();
     frame_id_ = costmap_ros->getGlobalFrameID();
-
-    tf_buffer = std::make_shared<tf2_ros::Buffer>(clock_);
-    tf_listener =
-        std::make_shared<tf2_ros::TransformListener>(*tf_buffer, node_, false);
 
     plan_pub_ = node_->create_publisher<nav_msgs::msg::Path>("plan", 1);
     voronoi_grid_pub_ = node_->create_publisher<nav_msgs::msg::OccupancyGrid>(
@@ -156,8 +154,8 @@ VoronoiPlanner::createPlan(const geometry_msgs::msg::PoseStamped &start,
 
   geometry_msgs::msg::TransformStamped transform_stamped;
   try {
-    transform_stamped = tf_buffer->lookupTransform(
-        global_frame, goal.header.frame_id, clock_->now());
+    transform_stamped =
+        tf_->lookupTransform(global_frame, goal.header.frame_id, clock_->now());
   } catch (tf2::TransformException &ex) {
     RCLCPP_ERROR(logger_, "Could not transform %s to %s: %s",
                  goal.header.frame_id.c_str(), global_frame.c_str(), ex.what());
