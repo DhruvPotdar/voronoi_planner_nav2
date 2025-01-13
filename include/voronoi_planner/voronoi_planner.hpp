@@ -1,8 +1,11 @@
 #ifndef VORONOI_PLANNER__PLANNER_CORE_HPP_
 #define VORONOI_PLANNER__PLANNER_CORE_HPP_
 
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
+
 #include <boost/thread/pthread/mutex.hpp>
 #include <geometry_msgs/msg/point.hpp>
+#include <geometry_msgs/msg/pose.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <map_msgs/msg/detail/occupancy_grid_update__struct.hpp>
 #include <nav2_core/global_planner.hpp>
@@ -11,13 +14,12 @@
 #include <nav2_util/robot_utils.hpp>
 #include <nav_msgs/msg/detail/occupancy_grid__struct.hpp>
 #include <nav_msgs/msg/path.hpp>
-#include <rclcpp/rclcpp.hpp>
 
+#include <rclcpp/rclcpp.hpp>
 #include <rclcpp/service.hpp>
 #include <rclcpp/subscription.hpp>
 #include <rclcpp_lifecycle/lifecycle_node.hpp>
 #include <tf2/transform_datatypes.h>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
 #include <memory>
 #include <string>

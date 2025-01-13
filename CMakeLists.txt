@@ -9,24 +9,40 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(pluginlib REQUIRED)
 find_package(nav2_costmap_2d REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
+find_package(tf2_ros REQUIRED)
 find_package(nav2_core REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(angles REQUIRED)
 find_package(geometry_msgs REQUIRED)
 
-set(dep_pkgs rclcpp geometry_msgs nav2_costmap_2d pluginlib)
-set(library_name ${PROJECT_NAME}_plugin)
-
-# Include directories target_include_directories( ${PROJECT_NAME} PRIVATE
-# $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-# $<INSTALL_INTERFACE:include>)
+set(dep_pkgs
+    rclcpp
+    geometry_msgs
+    nav2_costmap_2d
+    tf2
+    tf2_geometry_msgs
+    tf2_ros
+    pluginlib
+    nav2_core
+    nav_msgs
+    angles)
 
 set(library_name ${PROJECT_NAME})
 
-add_library(${library_name} SHARED src/voronoi_planner.cpp src/dynamic_voronoi.cpp src/bucketedqueue.cpp)
+add_library(
+  ${library_name} SHARED src/voronoi_planner.cpp src/dynamic_voronoi.cpp
+                         src/bucketedqueue.cpp)
+
 ament_target_dependencies(${library_name} ${dep_pkgs})
-include_directories(include)
+target_link_libraries(${library_name} tf2::tf2
+                      tf2_geometry_msgs::tf2_geometry_msgs)
+
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
+
+ament_export_dependencies(${dep_pkgs})
 
 # IDK What this does for now
 target_compile_definitions(${library_name}
@@ -44,14 +60,8 @@ install(
 install(DIRECTORY include/ DESTINATION include/)
 
 install(FILES voronoi_planner.xml DESTINATION share/${PROJECT_NAME})
-# Add the plugin test executable
-# add_executable(plugin_test src/test.cpp)
 
-# Link necessary libraries
-# target_link_libraries(plugin_test rclcpp pluginlib)
-
-# Install the test executable
-# install(TARGETS plugin_test DESTINATION lib/${PROJECT_NAME})
+# lib/${PROJECT_NAME})
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   # the following line skips the linter which checks for copyrights comment the

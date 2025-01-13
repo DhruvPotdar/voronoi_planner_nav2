@@ -1,3 +1,5 @@
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
+
 #include "voronoi_planner/voronoi_planner.hpp"
 #include <map_msgs/msg/occupancy_grid_update.hpp>
 #include <memory>
@@ -7,8 +9,11 @@
 #include <pluginlib/class_list_macros.hpp>
 #include <rclcpp/logging.hpp>
 #include <rclcpp/subscription.hpp>
-#include <tf2/LinearMath/Quaternion.h>
+
+#include <tf2/LinearMath/Transform.h>
 #include <tf2/convert.h>
+#include <tf2_ros/buffer.h>
+#include <tf2_ros/transform_listener.h>
 
 namespace voronoi_planner {
 
@@ -54,7 +59,7 @@ void VoronoiPlanner::configure(
 
     costmap_update_subscriber_ =
         node_->create_subscription<map_msgs::msg::OccupancyGridUpdate>(
-            "some_costmap_update_topic", 10,
+            "/global_costmap/costmap_updates", 10,
             std::bind(&VoronoiPlanner::costmapUpdateCallback, this,
                       std::placeholders::_1));
     initialized_ = true;
@@ -62,9 +67,20 @@ void VoronoiPlanner::configure(
     RCLCPP_WARN(logger_,
                 "Voronoi Planner has already been configured. Doing nothing.");
   }
+
+  double origin_x = planner_->costmap_->getOriginX();
+  double origin_y = planner_->costmap_->getOriginY();
+  double size_x = planner_->costmap_->getSizeInMetersX();
+  double size_y = planner_->costmap_->getSizeInMetersY();
+
+  RCLCPP_INFO(
+      logger_,
+      "Costmap bounds: origin_x: %f, origin_y: %f, size_x: %f, size_y: %f",
+      origin_x, origin_y, size_x, size_y);
 }
 void VoronoiPlanner::costmapUpdateCallback(
     const map_msgs::msg::OccupancyGridUpdate::SharedPtr msg) const {
+  RCLCPP_INFO(logger_, "++++++++++++++++++++++++++++++++++++++++++++++++");
   RCLCPP_INFO(logger_,
               "Received occupancy grid update: x=%d, y=%d, width=%d, height=%d",
               msg->x, msg->y, msg->width, msg->height);
@@ -77,7 +93,7 @@ void VoronoiPlanner::clearRobotCell(unsigned int mx, unsigned int my) {
         "The planner has not been initialized yet, but it is being used.");
     return;
   }
-  costmap_->setCost(mx, my, nav2_costmap_2d::FREE_SPACE);
+  planner_->costmap_->setCost(mx, my, nav2_costmap_2d::FREE_SPACE);
 }
 
 // TODO: Make Plan Service here
@@ -85,10 +101,9 @@ void VoronoiPlanner::clearRobotCell(unsigned int mx, unsigned int my) {
 
 void VoronoiPlanner::mapToWorld(double mx, double my, double &wx, double &wy) {
   float convert_offset_ = 0;
-  wx = costmap_->getOriginX() +
-       (mx + convert_offset_) * costmap_->getResolution();
-  wy = costmap_->getOriginY() +
-       (my + convert_offset_) * costmap_->getResolution();
+  double resolution = planner_->costmap_->getResolution();
+  wx = planner_->costmap_->getOriginX() + ((mx + convert_offset_) * resolution);
+  wy = planner_->costmap_->getOriginY() + ((my + convert_offset_) * resolution);
 }
 
 void VoronoiPlanner::cleanup() {
@@ -114,11 +129,16 @@ void VoronoiPlanner::deactivate() {
   }
   dyn_params_handler_.reset();
 }
+
 bool VoronoiPlanner::worldToMap(double wx, double wy, double &mx, double &my) {
-  double origin_x = costmap_->getOriginX(), origin_y = costmap_->getOriginY();
-  double resolution = costmap_->getResolution();
+  double origin_x = planner_->costmap_->getOriginX(),
+         origin_y = planner_->costmap_->getOriginY();
+  double resolution = planner_->costmap_->getResolution();
 
   if (wx < origin_x || wy < origin_x) {
+    RCLCPP_DEBUG(logger_,
+                 "World coordinates [%.2f, %.2f] are outside map bounds", wx,
+                 wy);
     return false;
   }
 
@@ -126,13 +146,15 @@ bool VoronoiPlanner::worldToMap(double wx, double wy, double &mx, double &my) {
   mx = (wx - origin_x) / resolution - convert_offset_;
   my = (wy - origin_y) / resolution - convert_offset_;
 
-  if (mx < costmap_->getSizeInCellsX() && my < costmap_->getSizeInCellsY()) {
-    return true;
+  if (mx < 0 || my < 0 || mx >= planner_->costmap_->getSizeInCellsX() ||
+      my >= planner_->costmap_->getSizeInCellsY()) {
+    // RCLCPP_DEBUG(logger_,
+    //              "Computed map coordinates [%.2f, %.2f] are outside map
+    //              bounds", mx, my);
+    return false;
   }
 
-  // NOTE: if there is an error, the values of mx, and my are not chnaged. Could
-  // cause bugs?
-  return false;
+  return true;
 }
 
 nav_msgs::msg::Path
@@ -168,35 +190,49 @@ VoronoiPlanner::createPlan(const geometry_msgs::msg::PoseStamped &start,
   unsigned int start_x_i, start_y_i, goal_x_i, goal_y_i;
   double start_x, start_y, goal_x, goal_y;
 
-  if (!costmap_->worldToMap(wx, wy, start_x_i, start_y_i)) {
+  // auto origin_x = planner_->costmap_->getOriginX();
+  // auto origin_y = planner_->costmap_->getOriginY();
+  // auto map_height = planner_->costmap_->getResolution();
+  if (!planner_->costmap_->worldToMap(wx, wy, start_x_i, start_y_i)) {
     RCLCPP_WARN(logger_,
-                "The robots position is off the global costmap. Planning will "
-                "fail. Make sure it is localized properly");
+                "The robot's position [%.2f, %.2f] is off the global costmap. "
+                "Cost map bounds: [%.2f, %.2f] to [%.2f, %.2f]",
+                wx, wy, planner_->costmap_->getOriginX(),
+                planner_->costmap_->getOriginY(),
+                planner_->costmap_->getOriginX() +
+                    planner_->costmap_->getSizeInMetersX(),
+                planner_->costmap_->getOriginY() +
+                    planner_->costmap_->getSizeInMetersY());
     return empty_path;
   }
   worldToMap(wx, wy, start_x, start_y);
 
   wx = goal.pose.position.x;
   wy = goal.pose.position.y;
-  if (!costmap_->worldToMap(wx, wy, goal_x_i, goal_y_i)) {
+  if (!planner_->costmap_->worldToMap(wx, wy, goal_x_i, goal_y_i)) {
     RCLCPP_WARN_THROTTLE(logger_, *clock_, 1.0,
                          "The goal send is off the global costmap. Planning to "
                          "this goal is not possible");
     return empty_path;
   }
   worldToMap(wx, wy, goal_x, goal_y);
-
   // clear the starting cell in the costmap because it wont be a obstacle
-  tf2::Stamped<geometry_msgs::msg::Pose> start_pose;
-  tf2::fromMsg(start, start_pose);
+  tf2::Stamped<tf2::Transform> *start_pose;
+  tf2::convert(start.pose, start_pose);
   clearRobotCell(start_x_i, start_y_i);
 
-  int nx = costmap_->getSizeInCellsX(), ny = costmap_->getSizeInCellsY();
-  outlineMap(costmap_->getCharMap(), nx, ny, nav2_costmap_2d::LETHAL_OBSTACLE);
+  RCLCPP_DEBUG(logger_, "Planning from [%d, %d] to [%d, %d]", start_x_i,
+               start_y_i, goal_x_i, goal_y_i);
+
+  int nx = planner_->costmap_->getSizeInCellsX(),
+      ny = planner_->costmap_->getSizeInCellsY();
+  outlineMap(planner_->costmap_->getCharMap(), nx, ny,
+             nav2_costmap_2d::LETHAL_OBSTACLE);
 
   bool **map = NULL;
 
-  int sizeX = costmap_->getSizeInCellsY(), sizeY = costmap_->getSizeInCellsY();
+  int sizeX = planner_->costmap_->getSizeInCellsY(),
+      sizeY = planner_->costmap_->getSizeInCellsY();
 
   map = new bool *[sizeX];
   RCLCPP_INFO(logger_, "Map Size is %dx%d", sizeX, sizeY);
@@ -210,7 +246,7 @@ VoronoiPlanner::createPlan(const geometry_msgs::msg::PoseStamped &start,
 
   for (int y = sizeY - 1; y >= 0; y--) {
     for (int x = 0; x < sizeX; x++) {
-      unsigned char c = costmap_->getCost(x, y);
+      unsigned char c = planner_->costmap_->getCost(x, y);
 
       if (c == nav2_costmap_2d::FREE_SPACE ||
           c == nav2_costmap_2d::NO_INFORMATION)
@@ -639,12 +675,13 @@ VoronoiPlanner::dynamicParametersCallback(
   return result;
 }
 void VoronoiPlanner::publishVoronoiGrid(DynamicVoronoi *voronoi) {
-  int nx = costmap_->getSizeInCellsX(), ny = costmap_->getSizeInCellsY();
+  int nx = planner_->costmap_->getSizeInCellsX(),
+      ny = planner_->costmap_->getSizeInCellsY();
 
   RCLCPP_WARN(logger_, "costmap sx = %d,sy = %d, voronoi sx = %d, sy = %d", nx,
               ny, voronoi->getSizeX(), voronoi->getSizeY());
 
-  double resolution = costmap_->getResolution();
+  double resolution = planner_->costmap_->getResolution();
   nav_msgs::msg::OccupancyGrid grid;
   // Publish Whole Grid
   grid.header.frame_id = frame_id_;
@@ -655,7 +692,7 @@ void VoronoiPlanner::publishVoronoiGrid(DynamicVoronoi *voronoi) {
   grid.info.height = ny;
 
   double wx, wy;
-  costmap_->mapToWorld(0, 0, wx, wy);
+  planner_->costmap_->mapToWorld(0, 0, wx, wy);
   grid.info.origin.position.x = wx - resolution / 2;
   grid.info.origin.position.y = wy - resolution / 2;
   grid.info.origin.position.z = 0.0;
