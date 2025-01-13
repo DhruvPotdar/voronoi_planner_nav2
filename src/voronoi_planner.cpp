@@ -1,3 +1,4 @@
+#include <cmath>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
 #include "voronoi_planner/voronoi_planner.hpp"
@@ -217,8 +218,6 @@ VoronoiPlanner::createPlan(const geometry_msgs::msg::PoseStamped &start,
   }
   worldToMap(wx, wy, goal_x, goal_y);
   // clear the starting cell in the costmap because it wont be a obstacle
-  tf2::Stamped<tf2::Transform> *start_pose;
-  tf2::convert(start.pose, start_pose);
   clearRobotCell(start_x_i, start_y_i);
 
   RCLCPP_DEBUG(logger_, "Planning from [%d, %d] to [%d, %d]", start_x_i,
@@ -255,6 +254,8 @@ VoronoiPlanner::createPlan(const geometry_msgs::msg::PoseStamped &start,
         (map)[x][y] = true; // cell is occupied
     }
   }
+  RCLCPP_INFO(logger_, "Current time %ld", clock_->now().nanoseconds());
+  RCLCPP_INFO(logger_, "Current time %ld", t.nanoseconds());
   RCLCPP_INFO(logger_, "Time to convert map: %f sec",
               (clock_->now() - t).seconds());
 
@@ -279,10 +280,6 @@ VoronoiPlanner::createPlan(const geometry_msgs::msg::PoseStamped &start,
     voronoi_.prune();
   RCLCPP_INFO(logger_, "Time  for map prune: %f sec",
               (clock_->now() - t).seconds());
-
-  t = clock_->now();
-  voronoi_.visualize("~/map.ppm");
-  RCLCPP_INFO(logger_, "visualize done");
 
   std::cerr << "Generated Initial frame. \n";
 
@@ -498,6 +495,7 @@ bool VoronoiPlanner::findPath(std::vector<std::pair<float, float>> *path,
       resign = true;
       // ! TODO: Check this is what is needed to be done or something else
       // path->empty();
+      std::cout << "Path not found??" << std::endl;
       return false;
     } else {
       // sort open by cost
