@@ -121,7 +121,7 @@ protected:
   std::string frame_id_ = "map";
   std::string name_;
   // Existing configuration parameters
-  bool publish_voronoi_grid_ = false;
+  bool publish_voronoi_grid_ = true;
   bool smooth_path_ = true;
   float weight_data_ = 0.5;
   float weight_smooth_ = 0.1;

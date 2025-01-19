@@ -97,9 +97,6 @@ void VoronoiPlanner::clearRobotCell(unsigned int mx, unsigned int my) {
   planner_->costmap_->setCost(mx, my, nav2_costmap_2d::FREE_SPACE);
 }
 
-// TODO: Make Plan Service here
-// VoronoiPlanner::makePlanService
-
 void VoronoiPlanner::mapToWorld(double mx, double my, double &wx, double &wy) {
   float convert_offset_ = 0;
   double resolution = planner_->costmap_->getResolution();
@@ -379,14 +376,14 @@ VoronoiPlanner::createPlan(const geometry_msgs::msg::PoseStamped &start,
 
   //    }
 
-  RCLCPP_ERROR(logger_, "\nTime to get plan: %f sec\n",
+  RCLCPP_ERROR(logger_, "Time to get plan: %f sec",
                (clock_->now() - t_b).seconds());
 
   // publish the plan for visualization purposes
   path.header.stamp = node_->now();
   path.header.frame_id = frame_id_;
 
-  if (!path.poses.empty()) {
+  if (path.poses.empty()) {
     RCLCPP_ERROR(logger_, "The plan is empty.");
   }
 
@@ -494,7 +491,6 @@ bool VoronoiPlanner::findPath(std::vector<std::pair<float, float>> *path,
     if (open.size() == 0) {
       resign = true;
       // ! TODO: Check this is what is needed to be done or something else
-      // path->empty();
       std::cout << "Path not found??" << std::endl;
       return false;
     } else {
@@ -706,6 +702,7 @@ void VoronoiPlanner::publishVoronoiGrid(DynamicVoronoi *voronoi) {
         grid.data[x + y * nx] = 0;
     }
   }
+  RCLCPP_INFO(logger_, "Publishing voronoi grid as a map topic");
   voronoi_grid_pub_->publish(grid);
 }
 } // namespace voronoi_planner
