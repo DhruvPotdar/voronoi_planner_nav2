@@ -251,32 +251,32 @@ VoronoiPlanner::createPlan(const geometry_msgs::msg::PoseStamped &start,
         (map)[x][y] = true; // cell is occupied
     }
   }
-  RCLCPP_INFO(logger_, "Current time %ld", clock_->now().nanoseconds());
-  RCLCPP_INFO(logger_, "Current time %ld", t.nanoseconds());
-  RCLCPP_INFO(logger_, "Time to convert map: %f sec",
-              (clock_->now() - t).seconds());
+  // RCLCPP_INFO(logger_, "Current time %ld", clock_->now().nanoseconds());
+  // RCLCPP_INFO(logger_, "Current time %ld", t.nanoseconds());
+  // RCLCPP_INFO(logger_, "Time to convert map: %f sec",
+  //             (clock_->now() - t).seconds());
 
   bool doPrune = true;
 
   // initialize voronoi object with the map
   t = clock_->now();
-  RCLCPP_INFO(logger_, "voronoi.initializeMap");
+  // RCLCPP_INFO(logger_, "voronoi.initializeMap");
   voronoi_.initializeMap(sizeX, sizeY, map);
-  RCLCPP_INFO(logger_, "Time for initialization of map: %f sec",
-              (clock_->now() - t).seconds());
+  // RCLCPP_INFO(logger_, "Time for initialization of map: %f sec",
+  // (clock_->now() - t).seconds());
 
   t = clock_->now();
-  RCLCPP_INFO(logger_, "voronoi.update");
+  // RCLCPP_INFO(logger_, "voronoi.update");
   voronoi_.update(); // update distance map and Voronoi Diagram
-  RCLCPP_INFO(logger_, "Time for map update: %f sec",
-              (clock_->now() - t).seconds());
+  // RCLCPP_INFO(logger_, "Time for map update: %f sec",
+  // (clock_->now() - t).seconds());
 
   t = clock_->now();
-  RCLCPP_INFO(logger_, "voronoi.prune");
+  // RCLCPP_INFO(logger_, "voronoi.prune");
   if (doPrune)
     voronoi_.prune();
-  RCLCPP_INFO(logger_, "Time  for map prune: %f sec",
-              (clock_->now() - t).seconds());
+  // RCLCPP_INFO(logger_, "Time  for map prune: %f sec",
+  // (clock_->now() - t).seconds());
 
   std::cerr << "Generated Initial frame. \n";
 
@@ -289,15 +289,15 @@ VoronoiPlanner::createPlan(const geometry_msgs::msg::PoseStamped &start,
   //    goal_x = 300;
   //    goal_y = 330;
 
-  std::cout << "start_x,start_y " << start_x << " " << start_y << std::endl;
-  std::cout << "goal_x,goal_y " << goal_x << " " << goal_y << std::endl;
+  // std::cout << "start_x,start_y " << start_x << " " << start_y << std::endl;
+  // std::cout << "goal_x,goal_y " << goal_x << " " << goal_y << std::endl;
 
   bool res1 = false, res2 = false, res3 = false;
 
   if (!voronoi_.isVoronoi(goal_x, goal_y)) {
     //        path3 = findPath( goal, init, A, 0, 1 );
     res3 = findPath(&path3, goal_x, goal_y, start_x, start_y, &voronoi_, 0, 1);
-    std::cout << "findPath 3 res " << res3 << std::endl;
+    // std::cout << "findPath 3 res " << res3 << std::endl;
     //        goal = path3(end,:);
     goal_x = std::get<0>(path3[path3.size() - 1]);
     goal_y = std::get<1>(path3[path3.size() - 1]);
@@ -311,7 +311,7 @@ VoronoiPlanner::createPlan(const geometry_msgs::msg::PoseStamped &start,
 
   if (!voronoi_.isVoronoi(start_x, start_y)) {
     res1 = findPath(&path1, start_x, start_y, goal_x, goal_y, &voronoi_, 0, 1);
-    std::cout << "findPath 1 res " << res1 << std::endl;
+    // std::cout << "findPath 1 res " << res1 << std::endl;
     start_x = std::get<0>(path1[path1.size() - 1]);
     start_y = std::get<1>(path1[path1.size() - 1]);
 
@@ -387,6 +387,8 @@ VoronoiPlanner::createPlan(const geometry_msgs::msg::PoseStamped &start,
     RCLCPP_ERROR(logger_, "The plan is empty.");
   }
 
+  auto last = path.poses.back();
+
   RCLCPP_INFO(logger_, "Publishing plan");
   plan_pub_->publish(path);
 
@@ -411,11 +413,11 @@ bool VoronoiPlanner::findPath(std::vector<std::pair<float, float>> *path,
   // Plan from any path in the grid to a voronoi cell, so that the rest of the
   // path can be found
 
-  RCLCPP_INFO(logger_,
-              "init_x %d, init_y %d, goal_x %d, goal_y %d, "
-              "check_is_voronoi_cell % d, stop_at_voronoi % d ",
-              init_x, init_y, goal_x, goal_y, check_is_voronoi,
-              stop_at_voronoi);
+  // RCLCPP_INFO(logger_,
+  //             "init_x %d, init_y %d, goal_x %d, goal_y %d, "
+  //             "check_is_voronoi_cell % d, stop_at_voronoi % d ",
+  //             init_x, init_y, goal_x, goal_y, check_is_voronoi,
+  //             stop_at_voronoi);
   RCLCPP_INFO(logger_, "isVoronoi(init) %d; isVoronoi(goal) %d",
               voronoi->isVoronoi(init_x, init_y),
               voronoi->isVoronoi(goal_x, goal_y));

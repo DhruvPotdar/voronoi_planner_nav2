@@ -124,7 +124,7 @@ protected:
   bool publish_voronoi_grid_ = true;
   bool smooth_path_ = true;
   float weight_data_ = 0.5;
-  float weight_smooth_ = 0.1;
+  float weight_smooth_ = 1.1;
 
 private:
   // Existing coordinate transformation methods
