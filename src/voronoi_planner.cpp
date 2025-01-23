@@ -182,6 +182,24 @@ VoronoiPlanner::createPlan(const geometry_msgs::msg::PoseStamped &start,
     return empty_path;
   }
 
+  // Check if start is very close to goal
+  double distance = std::hypot(start.pose.position.x - goal.pose.position.x,
+                               start.pose.position.y - goal.pose.position.y);
+
+  // Define a small threshold (e.g., 0.1 meters)
+  if (distance < 0.1) {
+    // Create a plan with just the current position
+    nav_msgs::msg::Path current_pos_plan;
+    current_pos_plan.header.frame_id = frame_id_;
+    current_pos_plan.header.stamp = node_->now();
+
+    // Add the current position as the only pose in the plan
+    geometry_msgs::msg::PoseStamped current_pose = start;
+    current_pos_plan.poses.push_back(current_pose);
+
+    return current_pos_plan;
+  }
+
   double wx = start.pose.position.x;
   double wy = start.pose.position.y;
 
