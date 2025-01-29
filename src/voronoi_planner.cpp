@@ -66,22 +66,13 @@ void VoronoiPlanner::configure(
     RCLCPP_WARN(logger_,
                 "Voronoi Planner has already been configured. Doing nothing.");
   }
-
-  double origin_x = planner_->costmap_->getOriginX();
-  double origin_y = planner_->costmap_->getOriginY();
-  double size_x = planner_->costmap_->getSizeInMetersX();
-  double size_y = planner_->costmap_->getSizeInMetersY();
-
-  // RCLCPP_INFO(
-  //     logger_,
-  //     "Costmap bounds: origin_x: %f, origin_y: %f, size_x: %f, size_y: %f",
-  //     origin_x, origin_y, size_x, size_y);
 }
+
 void VoronoiPlanner::costmapUpdateCallback(
     const map_msgs::msg::OccupancyGridUpdate::SharedPtr msg) const {
-  // RCLCPP_INFO(logger_,
-  //             "Received occupancy grid update: x=%d, y=%d, width=%d,
-  //             height=%d", msg->x, msg->y, msg->width, msg->height);
+  RCLCPP_INFO(logger_,
+              "Received occupancy grid update: x=%d, y=%d, width=%d, height=%d",
+              msg->x, msg->y, msg->width, msg->height);
 }
 
 void VoronoiPlanner::clearRobotCell(unsigned int mx, unsigned int my) {
@@ -267,8 +258,6 @@ VoronoiPlanner::createPlan(const geometry_msgs::msg::PoseStamped &start,
   }
   // RCLCPP_INFO(logger_, "Current time %ld", clock_->now().nanoseconds());
   // RCLCPP_INFO(logger_, "Current time %ld", t.nanoseconds());
-  // RCLCPP_INFO(logger_, "Time to convert map: %f sec",
-  //             (clock_->now() - t).seconds());
 
   bool doPrune = true;
 
@@ -297,28 +286,20 @@ VoronoiPlanner::createPlan(const geometry_msgs::msg::PoseStamped &start,
   std::vector<std::pair<float, float>> path2;
   std::vector<std::pair<float, float>> path3;
 
-  //    start_x = 10;
-  //    start_y = 100;
-  //    goal_x = 300;
-  //    goal_y = 330;
-
-  // std::cout << "start_x,start_y " << start_x << " " << start_y << std::endl;
-  // std::cout << "goal_x,goal_y " << goal_x << " " << goal_y << std::endl;
-
   bool res1 = false, res2 = false, res3 = false;
 
   if (!voronoi_.isVoronoi(goal_x, goal_y)) {
-    //        path3 = findPath( goal, init, A, 0, 1 );
+    // path3 = findPath( goal, init, A, 0, 1 );
     res3 = findPath(&path3, goal_x, goal_y, start_x, start_y, &voronoi_, 0, 1);
     // std::cout << "findPath 3 res " << res3 << std::endl;
-    //        goal = path3(end,:);
+    // goal = path3(end,:);
     goal_x = std::get<0>(path3[path3.size() - 1]);
     goal_y = std::get<1>(path3[path3.size() - 1]);
 
-    std::cout << "voronoi.isVoronoi(goal_x,goal_y) "
-              << voronoi_.isVoronoi(goal_x, goal_y) << std::endl;
+    RCLCPP_INFO(logger_, "voronoi.isVoronoi(goal_x,goal_y) %d ",
+                voronoi_.isVoronoi(goal_x, goal_y));
 
-    //        path3 = flipud(path3);
+    // path3 = flipud(path3);
     std::reverse(path3.begin(), path3.end());
   }
 
@@ -333,10 +314,7 @@ VoronoiPlanner::createPlan(const geometry_msgs::msg::PoseStamped &start,
   if (!(res1 && res2 && res3)) {
     RCLCPP_INFO(logger_, "Failed to find full path");
   }
-  //    else
-  //    {
 
-  //    path = [path;path2;path3];
   path1.insert(path1.end(), path2.begin(), path2.end());
   path1.insert(path1.end(), path3.begin(), path3.end());
 
@@ -348,11 +326,7 @@ VoronoiPlanner::createPlan(const geometry_msgs::msg::PoseStamped &start,
       map[x][y] = 1;
   }
 
-  //    if(smooth_path_){
-  //        smoothPath(&path1);
-  //    }
-
-  //    visualize("/tmp/plan.ppm", &voronoi_, map, &path1);
+  smoothPath(&path1);
 
   for (unsigned long i = 0; i < path1.size(); i++) {
 
@@ -373,13 +347,7 @@ VoronoiPlanner::createPlan(const geometry_msgs::msg::PoseStamped &start,
     path.poses.push_back(new_goal);
   }
 
-  // add orientations if needed
-  //    orientation_filter_->processPath(start, plan);
-
-  //    }
-
-  RCLCPP_INFO(logger_, "Time to get plan: %f sec",
-              (clock_->now() - t_b).seconds());
+  RCLCPP_INFO(logger_, "Time to plan: %f sec", (clock_->now() - t_b).seconds());
 
   // publish the plan for visualization purposes
   path.header.stamp = node_->now();
@@ -394,8 +362,6 @@ VoronoiPlanner::createPlan(const geometry_msgs::msg::PoseStamped &start,
   if (publish_voronoi_grid_) {
     publishVoronoiGrid(&voronoi_);
   }
-
-  //    delete potential_array_;
 
   for (int x = 0; x < sizeX; x++) {
     delete[] map[x];
@@ -420,6 +386,7 @@ bool VoronoiPlanner::findPath(std::vector<std::pair<float, float>> *path,
   // RCLCPP_INFO(logger_, "isVoronoi(init) %d; isVoronoi(goal) %d",
   // voronoi->isVoronoi(init_x, init_y),
   // voronoi->isVoronoi(goal_x, goal_y));
+
   // available movements (actions) of the robot on the grid
   std::vector<std::pair<int, int>> delta;
   delta.push_back({-1, 0});  // go up
@@ -451,13 +418,6 @@ bool VoronoiPlanner::findPath(std::vector<std::pair<float, float>> *path,
     }
   }
 
-  // heuristic = zeros(szA(1), szA(2));
-  // for(i=1:szA(1))
-  //     for(j=1:szA(2))
-  //         heuristic(i,j) = norm( [i - goal(1); j - goal(2)] );
-  //     end
-  // end
-
   // actions (number of delta's row) cells grid (same size as map grid)
   int **action = NULL;
   action = new int *[sizeX];
@@ -477,8 +437,6 @@ bool VoronoiPlanner::findPath(std::vector<std::pair<float, float>> *path,
   // set cost
   float g = 0;
 
-  // f = heuristic() + g;
-
   // vector of open (for possible expansion) nodes
   std::vector<std::tuple<float, int, int>> open;
   open.push_back(std::make_tuple(g, x, y));
@@ -497,6 +455,7 @@ bool VoronoiPlanner::findPath(std::vector<std::pair<float, float>> *path,
       // sort open by cost
       sort(open.begin(), open.end());
       reverse(open.begin(), open.end());
+
       // get node with lowest cost
       std::tuple<float, int, int> next = open[open.size() - 1];
       open.pop_back();
@@ -526,10 +485,12 @@ bool VoronoiPlanner::findPath(std::vector<std::pair<float, float>> *path,
 
         // check new node to be in grid bounds
         if (x2 < sizeX && y2 < sizeY) {
+
           // check new node not to be in obstacle
           if (voronoi->isOccupied(x2, y2)) {
             continue;
           }
+
           // check new node was not early visited
           if (closed[x2][y2]) {
             continue;
@@ -541,7 +502,6 @@ bool VoronoiPlanner::findPath(std::vector<std::pair<float, float>> *path,
           }
 
           float g2 = g + cost;
-          //                        f2 = heuristic(x2,y2) + g2;
           open.push_back(std::make_tuple(g2, x2, y2));
           closed[x2][y2] = true;
           action[x2][y2] = i;
@@ -621,21 +581,6 @@ void VoronoiPlanner::smoothPath(std::vector<std::pair<float, float>> *path) {
   *path = newpath;
 }
 
-/*void VoronoiPlanner::publishPlan(const nav_msgs::msg::Path &path) {*/
-/**/
-/*  if (!initialized_) {*/
-/*    RCLCPP_ERROR(*/
-/*        logger_,*/
-/*        "The planner has not been initialized yet, but it is being used.");*/
-/*    return;*/
-/*  }*/
-/**/
-/*  if (!path.poses.empty()) {*/
-/*    plan_pub_->publish(path);*/
-/*  } else {*/
-/*    RCLCPP_WARN(logger_, "The plan is empty");*/
-/*  }*/
-/*}*/
 rcl_interfaces::msg::SetParametersResult
 VoronoiPlanner::dynamicParametersCallback(
     std::vector<rclcpp::Parameter> parameters) {
