@@ -11,6 +11,8 @@ The Voronoi Planner is a global planner plugin for the Nav2 planner server. Its 
 ## Future Goals
 
 - [ ] Complete rewrite of dynamicVoronoi.
+    - Modern CPP implementation
+    - Better data structure implementation
 - [ ] Make GVD generation multi-threaded on large maps.
 - [ ] OpenMP integration maybe for parallelism?
 
@@ -19,7 +21,9 @@ The Voronoi Planner is a global planner plugin for the Nav2 planner server. Its 
 1. Clone the repository into your ROS2 workspace:
 
    ```bash
-   git clone <repository_url> src/voronoi_planner_nav2
+   mkdir -p ros2_ws/src
+   cd ros2_ws/
+   git clone https://github.com/DhruvPotdar/voronoi_planner_nav2 src/voronoi_planner_nav2
    ```
 
 2. Build the workspace:
@@ -42,24 +46,13 @@ To use the Voronoi Planner as the global planner in Nav2, update your `nav2_para
 planner_server:
   ros__parameters:
     expected_planner_frequency: 20.0
-    planner_plugins: ["GridBased", "VoronoiPlanner"]
-    GridBased:
-      plugin: "nav2_navfn_planner/NavfnPlanner"
+    planner_plugins: [ "VoronoiPlanner"]
     VoronoiPlanner:
       plugin: "voronoi_planner/VoronoiPlanner"
 ```
 
 Ensure that the `plugin` field for `VoronoiPlanner` matches the class name defined in the `voronoi_planner.xml` file.
 
-## Parameters
-
-The Voronoi Planner supports the following parameters:
-
-- **`expected_planner_frequency`**: The frequency at which the planner is expected to run.
-- **`planner_plugins`**: A list of planner plugins to load. Ensure `VoronoiPlanner` is included here.
-- **`plugin`**: The plugin class name for the Voronoi Planner (`voronoi_planner/VoronoiPlanner`).
-
-Additional parameters can be added to customize the behavior of the planner. Refer to the source code for more details.
 
 ## Code Overview
 
@@ -80,25 +73,12 @@ Additional parameters can be added to customize the behavior of the planner. Ref
    - A priority queue optimized for integer coordinates and squared distances.
    - Used internally by the Voronoi algorithm for efficient processing.
 
-### Key Methods
 
-- **`createPlan`**: Generates a path given a start and goal pose.
-- **`findPath`**: Computes a path using the Voronoi diagram.
-- **`initializeMap`**: Initializes the map with obstacles.
-- **`update`**: Updates the Voronoi diagram to reflect changes in the map.
-
-## Visualization
-
-The Voronoi Planner includes a method to visualize the Voronoi diagram and distance map. Use the `visualize` method in `DynamicVoronoi` to output the diagram as a `.ppm` file.
-
-## Contributing
-
-Contributions are welcome! Please fork the repository and submit a pull request with your changes.
 
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
 
-## Contact
-
-For questions or support, please contact the maintainer at [dhruvpotdar29@gmail.com].
+## Credits
+- [Dynamic Voronoi](https://github.com/frontw/dynamicvoronoi.git)
+- [Voronoi Planner For ROS1](https://github.com/frontw/voronoi_planner.git)
